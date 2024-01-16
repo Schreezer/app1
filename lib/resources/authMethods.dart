@@ -1,12 +1,12 @@
 import "dart:async";
+import "package:app1/globalVar.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "../models/user.dart" as model;
 import "dart:typed_data";
 
 class AuthMethods {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  String VerificationId = ""; // utility of this is yet to be determined
+  final FirebaseAuth _auth = FirebaseAuth.instance;// utility of this is yet to be determined
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late UserCredential Cred;
 
@@ -55,6 +55,7 @@ class AuthMethods {
           },
           codeSent: (String verificationId, int? resendToken) {
             res = 'code sent';
+          
             VerificationId = verificationId;
             completer.complete(
                 res);
@@ -69,7 +70,7 @@ class AuthMethods {
       res = _err.toString();
       completer.complete(res); // Complete the completer when there's an error
     }
-
+    print("the value of res in send otp function is: $res");
     return completer.future; // Return the completer's future
   }
   

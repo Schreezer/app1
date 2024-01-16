@@ -83,6 +83,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
                     // TODO: Save _user to your database
+                    
                   }
                 },
                 child: Text('Register'),

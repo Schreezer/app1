@@ -1,3 +1,4 @@
+import "package:app1/providers/userprovider.dart";
 import "package:app1/resources/authMethods.dart";
 import "package:app1/screens/registrationScreen.dart";
 import "package:app1/widgets.dart/textField.dart";
@@ -6,6 +7,7 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:intl_phone_field/intl_phone_field.dart";
 import 'package:restart_app/restart_app.dart';
+import 'package:provider/provider.dart';
 
 class EntryScreen extends StatefulWidget {
   const EntryScreen({super.key});
@@ -20,6 +22,7 @@ class _EntryScreenState extends State<EntryScreen> {
   final TextEditingController mailIdController = TextEditingController();
   bool _isLoading1 = false;
   bool _isLoading2 = false;
+  bool otpSent = false;
 
   void dispose() {
     super.dispose();
@@ -38,7 +41,7 @@ class _EntryScreenState extends State<EntryScreen> {
     return true;
   }
 
-  void sendOtp() async {
+  Future<bool> sendOtp() async {
     // should work on the logic of sending otp TODO: Test this function
     print(_phoneNumberController.text);
     setState(() {
@@ -47,15 +50,21 @@ class _EntryScreenState extends State<EntryScreen> {
     String res =
         await AuthMethods().Send_OTP(phone: _phoneNumberController.text);
 
-    // print(res);
-    if (res == 'success') {
+    print(res);
+    if (res == 'code sent') {
       showSnackBar(context, res);
-    } else {
-      showSnackBar(context, res);
-    }
-    setState(() {
+          setState(() {
       _isLoading1 = false;
     });
+      return true;
+    } else {
+      showSnackBar(context, res);
+          setState(() {
+      _isLoading1 = false;
+    });
+      return false;
+    }
+
   }
 
   void navigateToSignup() {
@@ -68,7 +77,7 @@ class _EntryScreenState extends State<EntryScreen> {
     );
   }
 
-  Future<void> Next(Provider) async {
+  Future<void> next(Provider) async {
     // ignore: unused_local_variable
     var res = 'otp entered';
     setState(() {
@@ -133,6 +142,7 @@ bool validatePhone(String? value) {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
       borderSide: Divider.createBorderSide(context),
@@ -168,7 +178,6 @@ bool validatePhone(String? value) {
                   contentPadding: const EdgeInsets.all(8),
                 ),
                 keyboardType: TextInputType.phone,
-
                 // controller: _phoneNumberController,
                 initialCountryCode: 'IN',
                 onChanged: (phone) {
@@ -187,7 +196,14 @@ bool validatePhone(String? value) {
                   //TODO: check if the validateEmail function is correct
 
                   // TODO: send the otp:
-                  sendOtp();
+                  if (sendOtp()==true) {
+                    setState(() {
+                      otpSent = true;
+                    });
+                    showSnackBar(context, "OTP sent to ${_phoneNumberController.text}");
+                  } else {
+                    showSnackBar(context, "Please enter a valid [phone number`]");
+                  }
                   showSnackBar(context, "OTP sent to ${_phoneNumberController.text}");
                 } else {
                   showSnackBar(context, "Please enter a valid email");
@@ -195,19 +211,42 @@ bool validatePhone(String? value) {
               },
               child: Text("Request OTP"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                // routes to the registration screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (BuildContext context) =>
-                        RegistrationScreen(mailIdController.text),
-                  ),
-                );
-              },
-              child: Text("Temporary Button"),
-            ),
+            // ElevatedButton(
+            //   onPressed: () {
+            //     // routes to the registration screen
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(
+            //         builder: (BuildContext context) =>
+            //             RegistrationScreen(mailIdController.text),
+            //       ),
+            //     );
+            //   },
+            //   child: Text("Temporary Button"),
+            // ),
+           
+                Column(
+                  children: [
+                    Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: TField(
+                          hText: "Enter OTP",
+                          controller: _otpController,
+                        ),
+                      ),
+                      Container(
+                        height: 20,
+                      ),
+                    ElevatedButton(
+                        onPressed: () {
+                          next(userProvider);
+                        },
+                        child: _isLoading2
+                            ? CircularProgressIndicator()
+                            : Text("Submit OTP")),
+                  ],
+                )
+                
           ],
         ),
       ),
