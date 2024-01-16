@@ -31,8 +31,10 @@ dependencies:
   cloud_firestore: ^4.14.0
   cupertino_icons: ^1.0.2
   firebase_auth: ^4.16.0
+  firebase_core: ^2.24.2
   flutter:
     sdk: flutter
+  intl_phone_field: ^3.2.0
   restart_app: ^1.2.1
 
 dev_dependencies:

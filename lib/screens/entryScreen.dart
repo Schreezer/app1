@@ -4,7 +4,9 @@ import "package:app1/widgets.dart/textField.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
+import "package:intl_phone_field/intl_phone_field.dart";
 import 'package:restart_app/restart_app.dart';
+
 class EntryScreen extends StatefulWidget {
   const EntryScreen({super.key});
 
@@ -27,17 +29,18 @@ class _EntryScreenState extends State<EntryScreen> {
   }
 
   bool validateEmail(String? value) {
-  const pattern = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)';
-  final regex = RegExp(pattern);
+    const pattern = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)';
+    final regex = RegExp(pattern);
 
-  if (value == null || value.isEmpty || !regex.hasMatch(value)) {
-    return false;
+    if (value == null || value.isEmpty || !regex.hasMatch(value)) {
+      return false;
+    }
+    return true;
   }
-  return true;
-}
-  
-  void sendOtp() async {// should work on the logic of sending otp TODO: Test this function
-    
+
+  void sendOtp() async {
+    // should work on the logic of sending otp TODO: Test this function
+    print(_phoneNumberController.text);
     setState(() {
       _isLoading1 = true;
     });
@@ -54,16 +57,18 @@ class _EntryScreenState extends State<EntryScreen> {
       _isLoading1 = false;
     });
   }
-  
+
   void navigateToSignup() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (BuildContext context) => RegistrationScreen(_phoneNumberController.text),
+        builder: (BuildContext context) =>
+            RegistrationScreen(_phoneNumberController.text),
       ),
     );
   }
-Future<void> Next(Provider) async {
+
+  Future<void> Next(Provider) async {
     // ignore: unused_local_variable
     var res = 'otp entered';
     setState(() {
@@ -75,7 +80,7 @@ Future<void> Next(Provider) async {
 
     if (res == 'success') {
       if (!context.mounted) return;
-      showSnackBar(context,res);
+      showSnackBar(context, res);
 
       FirebaseAuth auth = FirebaseAuth.instance;
       FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -92,7 +97,8 @@ Future<void> Next(Provider) async {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (BuildContext context) =>  RegistrationScreen(_phoneNumberController.text),
+            builder: (BuildContext context) =>
+                RegistrationScreen(_phoneNumberController.text),
           ),
         );
       } else {
@@ -105,18 +111,32 @@ Future<void> Next(Provider) async {
             ));
         // html.window.location.reload();
         Restart.restartApp();
-        
       }
     } else {
       if (!context.mounted) return;
-      showSnackBar( context,res);
+      showSnackBar(context, res);
     }
     setState(() {
       _isLoading2 = false;
     });
   }
+bool validatePhone(String? value) {
+  // This pattern allows for an optional '+' followed by any number of digits.
+  const pattern = r'^(\+?\d+)$';
+  final regex = RegExp(pattern);
+
+  if (value == null || value.isEmpty || !regex.hasMatch(value)) {
+    return false;
+  }
+  return true;
+}
+
   @override
   Widget build(BuildContext context) {
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: Divider.createBorderSide(context),
+    );
     return Scaffold(
       body: Center(
         child: Column(
@@ -128,13 +148,34 @@ Future<void> Next(Provider) async {
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: mailIdController,
+              child:
+
+                  // TextField(
+                  //   controller: mailIdController,
+                  //   decoration: InputDecoration(
+                  //       hintText: "Enter your phone number",
+                  //       border: OutlineInputBorder(
+                  //         borderRadius: BorderRadius.circular(20),
+                  //       )),
+                  // ),
+                  IntlPhoneField(
                 decoration: InputDecoration(
-                    hintText: "Enter your phone number",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    )),
+                  hintText: 'Phone Number',
+                  filled: true,
+                  border: inputBorder,
+                  focusedBorder: inputBorder,
+                  enabledBorder: inputBorder,
+                  contentPadding: const EdgeInsets.all(8),
+                ),
+                keyboardType: TextInputType.phone,
+
+                // controller: _phoneNumberController,
+                initialCountryCode: 'IN',
+                onChanged: (phone) {
+                  setState(() {
+                    _phoneNumberController.text = phone.completeNumber;
+                  });
+                },
               ),
             ),
             Container(
@@ -142,16 +183,13 @@ Future<void> Next(Provider) async {
             ),
             ElevatedButton(
               onPressed: () {
-
-                if (validateEmail(mailIdController.text)==true){
+                if (validatePhone(_phoneNumberController.text) == true) {
                   //TODO: check if the validateEmail function is correct
 
                   // TODO: send the otp:
-
-                  showSnackBar(context, "OTP sent to ${mailIdController.text}");
-                  
-                }
-                else{
+                  sendOtp();
+                  showSnackBar(context, "OTP sent to ${_phoneNumberController.text}");
+                } else {
                   showSnackBar(context, "Please enter a valid email");
                 }
               },
@@ -163,7 +201,8 @@ Future<void> Next(Provider) async {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (BuildContext context) =>  RegistrationScreen(mailIdController.text),
+                    builder: (BuildContext context) =>
+                        RegistrationScreen(mailIdController.text),
                   ),
                 );
               },
