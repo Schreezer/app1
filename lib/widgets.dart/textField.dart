@@ -2,8 +2,9 @@ import "package:flutter/material.dart";
 
 class TField extends StatefulWidget {
   String hText;
+  Icon? preIcon;
   TextEditingController controller;
-  TField({required this.hText, required this.controller, Key? key})
+  TField({ this.preIcon,required this.hText, required this.controller, Key? key})
       : super(key: key);
   @override
   State<TField> createState() => _TFieldState();
@@ -15,6 +16,7 @@ class _TFieldState extends State<TField> {
     return TextField(
       controller: widget.controller,
       decoration: InputDecoration(
+        prefixIcon: widget.preIcon ?? null,
           hintText: widget.hText,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),

@@ -1,5 +1,8 @@
+import "dart:async";
+
 import "package:app1/providers/userprovider.dart";
 import "package:app1/resources/authMethods.dart";
+import "package:app1/screens/homeScreen.dart";
 import "package:app1/screens/registrationScreen.dart";
 import "package:app1/widgets.dart/textField.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
@@ -20,12 +23,46 @@ class _EntryScreenState extends State<EntryScreen> {
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController mailIdController = TextEditingController();
+  bool phoneValid = false;
   bool _isLoading1 = false;
   bool _isLoading2 = false;
   bool otpSent = false;
+  Timer? _timer;
+  int _start = 900;
+
+  void startTimer() {
+    const oneSec = Duration(seconds: 1);
+    _timer?.cancel(); // Cancel any previous timer
+    setState(() {
+      _start = 900; // Reset the timer to 60 seconds
+    });
+    _timer = Timer.periodic(
+      oneSec,
+      (Timer timer) {
+        if (_start == 0) {
+          setState(() {
+            timer.cancel();
+          });
+        } else {
+          setState(() {
+            _start--;
+          });
+        }
+      },
+    );
+  }
+
+  void resetTimer() {
+    setState(() {
+      _timer?.cancel();
+      _start = 60; // Reset the timer to 60 seconds
+    });
+  }
 
   void dispose() {
+    _timer?.cancel();
     super.dispose();
+
     _phoneNumberController.dispose();
     _otpController.dispose();
     mailIdController.dispose();
@@ -53,26 +90,26 @@ class _EntryScreenState extends State<EntryScreen> {
     print(res);
     if (res == 'code sent') {
       showSnackBar(context, res);
-          setState(() {
-      _isLoading1 = false;
-    });
+      setState(() {
+        _isLoading1 = false;
+      });
       return true;
     } else {
       showSnackBar(context, res);
-          setState(() {
-      _isLoading1 = false;
-    });
+      setState(() {
+        _isLoading1 = false;
+      });
       return false;
     }
-
   }
 
   void navigateToSignup() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (BuildContext context) =>
-            RegistrationScreen(_phoneNumberController.text),
+        builder: (BuildContext context) => RegistrationScreen(
+            uid: FirebaseAuth.instance.currentUser!.uid,
+            phoneN: _phoneNumberController.text),
       ),
     );
   }
@@ -98,28 +135,30 @@ class _EntryScreenState extends State<EntryScreen> {
       // PhoneNumber = _phoneNumberController.text;
       final snapshot =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
-
-      if (snapshot == null || !snapshot.exists) {
+      print("the snapshot is ${snapshot.data()}");
+      if (snapshot.data() == null || !snapshot.exists) {
+        showSnackBar(context, "user does not exist");
         if (!context.mounted) return;
         Provider.refreshUser(false);
         // PhoneNumber = _phoneNumberController.text;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (BuildContext context) =>
-                RegistrationScreen(_phoneNumberController.text),
+            builder: (BuildContext context) => RegistrationScreen(
+                phoneN: _phoneNumberController.text, uid: uid!),
           ),
         );
       } else {
+        showSnackBar(context, "user exists");
         if (!context.mounted) return;
         Provider.refreshUser(false);
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (BuildContext context) => EntryScreen(),
+              builder: (BuildContext context) => HomeScreen(),
             ));
         // html.window.location.reload();
-        Restart.restartApp();
+        // Restart.restartApp();
       }
     } else {
       if (!context.mounted) return;
@@ -129,16 +168,16 @@ class _EntryScreenState extends State<EntryScreen> {
       _isLoading2 = false;
     });
   }
-bool validatePhone(String? value) {
-  // This pattern allows for an optional '+' followed by any number of digits.
-  const pattern = r'^(\+?\d+)$';
-  final regex = RegExp(pattern);
 
-  if (value == null || value.isEmpty || !regex.hasMatch(value)) {
-    return false;
+  bool validatePhone(String? value) {
+    // This pattern matches any number of digits without the country code.
+    const pattern = r'^\d+$';
+    final regex = RegExp(pattern);
+    // if (value == null || value.isEmpty || !regex.hasMatch(value)) {
+    //   return false;
+    // }
+    return true;
   }
-  return true;
-}
 
   @override
   Widget build(BuildContext context) {
@@ -148,106 +187,150 @@ bool validatePhone(String? value) {
       borderSide: Divider.createBorderSide(context),
     );
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Welcome to the app", style: TextStyle(fontSize: 20)),
-            Container(
-              height: 25,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child:
-
-                  // TextField(
-                  //   controller: mailIdController,
-                  //   decoration: InputDecoration(
-                  //       hintText: "Enter your phone number",
-                  //       border: OutlineInputBorder(
-                  //         borderRadius: BorderRadius.circular(20),
-                  //       )),
-                  // ),
-                  IntlPhoneField(
-                decoration: InputDecoration(
-                  hintText: 'Phone Number',
-                  filled: true,
-                  border: inputBorder,
-                  focusedBorder: inputBorder,
-                  enabledBorder: inputBorder,
-                  contentPadding: const EdgeInsets.all(8),
+      body: SingleChildScrollView(
+        // Prevents overflow when keyboard is visible
+        child: Center(
+          child: Padding(
+            padding:
+                const EdgeInsets.all(16.0), // Consistent padding for the screen
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Welcome to the app",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight:
+                          FontWeight.bold), // Larger text with bold weight
                 ),
-                keyboardType: TextInputType.phone,
-                // controller: _phoneNumberController,
-                initialCountryCode: 'IN',
-                onChanged: (phone) {
-                  setState(() {
-                    _phoneNumberController.text = phone.completeNumber;
-                  });
-                },
-              ),
-            ),
-            Container(
-              height: 20,
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (validatePhone(_phoneNumberController.text) == true) {
-                  //TODO: check if the validateEmail function is correct
-
-                  // TODO: send the otp:
-                  if (sendOtp()==true) {
-                    setState(() {
-                      otpSent = true;
-                    });
-                    showSnackBar(context, "OTP sent to ${_phoneNumberController.text}");
-                  } else {
-                    showSnackBar(context, "Please enter a valid [phone number`]");
-                  }
-                  showSnackBar(context, "OTP sent to ${_phoneNumberController.text}");
-                } else {
-                  showSnackBar(context, "Please enter a valid email");
-                }
-              },
-              child: Text("Request OTP"),
-            ),
-            // ElevatedButton(
-            //   onPressed: () {
-            //     // routes to the registration screen
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(
-            //         builder: (BuildContext context) =>
-            //             RegistrationScreen(mailIdController.text),
-            //       ),
-            //     );
-            //   },
-            //   child: Text("Temporary Button"),
-            // ),
-           
-                Column(
-                  children: [
-                    Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TField(
-                          hText: "Enter OTP",
-                          controller: _otpController,
+                SizedBox(height: 40), // More space after the welcome text
+                IntlPhoneField(
+                  // controller: _phoneNumberController,
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please enter your phone number';
+                    }
+                    if (value.isValidNumber()) {
+                      print("the phone number is valid");
+                      setState(() {
+                        phoneValid = true;
+                        _phoneNumberController.text = value.completeNumber;
+                      });
+                    }
+                    if (!value.isValidNumber()) {
+                      print("the phone number is not valid");
+                      setState(() {
+                        phoneValid = false;
+                      });
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText:
+                        'Phone Number', // Use label instead of hint for a cleaner look
+                    filled: true,
+                    fillColor: Colors.white, // Fill color for the text field
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15.0,
+                        horizontal:
+                            15.0), // Increased padding for the text field
+                    prefixIcon:
+                        Icon(Icons.phone), // Icon for phone number field
+                  ),
+                  keyboardType: TextInputType.phone,
+                  initialCountryCode: 'IN',
+                  // onChanged: (phone) {
+                  //   setState(() {
+                  //     _phoneNumberController.text = phone.completeNumber;
+                  //   });
+                  // },
+                ),
+                SizedBox(height: 20),
+                phoneValid
+                    ? ElevatedButton(
+                        onPressed: _isLoading1
+                            ? null
+                            : () async {
+                                // Disable button when loading
+                                setState(() {
+                                  _isLoading1 = true;
+                                });
+                                if (phoneValid) {
+                                  bool otpResult = await sendOtp();
+                                  if (otpResult) {
+                                    setState(() {
+                                      otpSent = true;
+                                    });
+                                    resetTimer();
+                                    startTimer();
+                                    showSnackBar(context,
+                                        "OTP sent to ${_phoneNumberController.text}");
+                                  } else {
+                                    showSnackBar(context,
+                                        "Please enter a valid phone number");
+                                  }
+                                } else {
+                                  showSnackBar(context,
+                                      "Please enter a valid phone number");
+                                }
+                                setState(() {
+                                  _isLoading1 = false;
+                                });
+                              },
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 15), // Button padding
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                30), // Rounded corners for the button
+                          ),
                         ),
-                      ),
-                      Container(
-                        height: 20,
-                      ),
-                    ElevatedButton(
-                        onPressed: () {
-                          next(userProvider);
-                        },
-                        child: _isLoading2
+                        child: _isLoading1
                             ? CircularProgressIndicator()
-                            : Text("Submit OTP")),
-                  ],
-                )
-                
-          ],
+                            : Text("Request OTP"),
+                      )
+                    : Container(),
+                if (otpSent) ...[
+                  SizedBox(height: 20),
+                  Text(
+                    "OTP will expire in $_start seconds",
+                    style: TextStyle(
+                        color: Colors.red[900]), // Set the color to dark red
+                  ),
+                ],
+                if (otpSent) ...[
+                  // Only show OTP field if OTP has been sent
+                  SizedBox(height: 20),
+                  TField(
+                    hText: "Enter OTP",
+                    controller: _otpController,
+                    preIcon: Icon(Icons.lock_outline), // Icon for OTP field
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isLoading2
+                        ? null
+                        : () {
+                            next(userProvider);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: _isLoading2
+                        ? CircularProgressIndicator()
+                        : Text("Submit OTP"),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

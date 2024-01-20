@@ -10,12 +10,12 @@ class AuthMethods {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late UserCredential Cred;
 
-  Future<model.User> getUserDetails() async {
+  Future<model.User?> getUserDetails() async {
     try {
       User? currentUser = _auth.currentUser;
       if (currentUser == null) {
         // print("user is null");
-        throw "user is null";
+        return null;
       } else {
         DocumentSnapshot snap =
             await _firestore.collection('users').doc(currentUser.uid).get();
