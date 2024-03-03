@@ -29,6 +29,7 @@ class AuthMethods {
 
   Future<String> Send_OTP ({ // initially Login_otp
 
+
     required String phone,
   }) async {
     String res = "Some Error Occured";
